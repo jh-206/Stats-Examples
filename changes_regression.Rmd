@@ -1,0 +1,102 @@
+---
+title: "Effects of Changing Dataset on Regression"
+author: "Jonathon Hirschi"
+date: "5/31/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+if(!require(pacman)) suppressMessages(install.packages('pacman'))
+suppressMessages(pacman::p_load(tidyverse, scales, modelr))
+```
+
+
+```{r data_sim}
+
+set.seed(5)
+
+# Generate data y as linear funtion of x
+x1 = seq(300000, 500000, length.out = 400)
+y1 = x1 + rnorm(length(x1), sd = 20000)
+df <- data.frame(
+  x = x1,
+  y = y1
+)
+
+
+# mean(df$y)
+
+
+# Generate Several Lower values that depart from trend
+inds <- sample((1:nrow(df))[df$y < 320000], 25)
+df[inds,]$y = df[inds,]$y - 60000
+
+df$low_val = 1:nrow(df) %in% inds
+
+# mean(df$y[inds])
+
+# plot(df$x, df$y)
+
+
+df2 <- df[-inds,]
+
+# plot(df2$x, df2$y)
+
+# Fit linear models
+fit1 <- lm(y ~ x, data = df)
+fit2 <- lm(y ~ x, data = df2)
+
+# Predict New value
+new_df <- data.frame(x = 475000)
+new_df <- new_df %>% add_predictions(fit1) %>% rename(pred1 = pred)
+new_df <- new_df %>% add_predictions(fit2) %>% rename(pred2 = pred)
+
+```
+
+Consider the following data and linear fit for `y` as a function of `x`. The linear model is used to predicted a new value at $x = 250,000$:
+
+```{r plot1}
+ggplot(df, aes(x = x, y = y)) + 
+  geom_point() + 
+  theme_minimal() +
+  geom_smooth(method = 'lm', color = 'red', se = F) +
+  geom_point(data = new_df, aes(x = x, y = pred1), color = 'red', size = 3) +
+  annotate("text", x = new_df$x, y = new_df$pred1, label = paste0("Predicted Value = ", scales::comma(new_df$pred1)), color = 'red', hjust = 1, vjust = -2.5)
+```
+
+If you look to the bottom left of the plot, there is a group of points that depart from the overall linear trend. The `y` values are "too low". Of course it would not be theoretically justifiable to remove these points simply for the purpose of a cleaner regression fit, but there might be other reasons why these observations should be filtered out (e.g. there was an error in measurement).
+
+There are `r scales::comma(length(inds))` of these points, and their average `y` value is roughly `r scales::comma(round(mean(df$y[inds]), -3))`, quite lower than the overall average of `r scales::comma(round(mean(df$y), -3))`.
+
+```{r plot2}
+ggplot(df, aes(x = x, y = y, color = low_val)) + 
+  geom_point() + 
+  scale_color_manual(values = c('black', 'red')) +
+  theme_minimal() + 
+  theme(legend.position="none") +
+  geom_hline(yintercept = mean(df$y[df$low_val]), color = 'red', linetype = 'dashed') +
+  annotate("text", x = mean(df$x[df$low_val]), y = mean(df$y[df$low_val]), label = paste0("Low Points Mean Value = ", scales::comma(mean(df$y[df$low_val]))), color = 'red', hjust = -.6, vjust = 1.2) +
+  geom_hline(yintercept = mean(df$y), color = 'blue', linetype = 'dashed') +
+  annotate("text", x = mean(df$x), y = mean(df$y), label = paste0("Overall Mean Value = ", scales::comma(mean(df$y))), color = 'blue', vjust = 1.2, hjust = -.5)
+```
+
+It might seem intuitive that removing observations with low `y` values would increase the predicted value for the new observation. However, linear regression is not simply an averaging of the `y` values. In this example, removing the low value points actually **decreases** the previous predicted value, even though the overall mean value for the observations increases. The red line in the plot was fit to data that includes the red points, while the blue line excludes those points. The red line is "tilted" down at the left end due to the low value points, and so as a result, the line is tilted upwards for high value of `x`. Therefore, the blue line has a lower predicted value at the high end.
+
+```{r plot3}
+ggplot(df, aes(x = x, y = y, color = low_val)) + 
+  geom_point() + 
+  geom_smooth(method = 'lm', color = 'red', se = F) +
+  scale_color_manual(values = c('black', 'red')) +
+  geom_smooth(data = df2, aes(x = x, y = y), method = 'lm', color = 'blue', se = F) +
+  geom_point(data = new_df, aes(x = x, y = pred2), color = 'blue', size = 3) +
+  annotate("text", x = new_df$x, y = new_df$pred2, label = paste0("Predicted Value = ", scales::comma(new_df$pred2)), color = 'blue', hjust = 1, vjust = -2.5) +
+  theme_minimal() + 
+  theme(legend.position="none")
+  
+```
+
+
+
+
+
