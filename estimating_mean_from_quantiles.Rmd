@@ -1,0 +1,131 @@
+---
+title: "Estaimting Mean from Quantiles"
+author: "Jonathon Hirschi"
+date: "June 4, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if(!require(pacman)) install.packages("pacman")
+
+pacman::p_load(tidyverse, pander, wesanderson)
+
+```
+
+## Intro
+
+Accuracy of different methods for estimating the sample mean using the quantiles are explored.
+
+[Bland method (2014)](https://pdfs.semanticscholar.org/59dd/526a4335850fcb364c92bb6f4eb879fb6e59.pdf) uses sample size, 3 quartiles, min, and max.
+
+Using the minimum and maximum seems dubious in practice, and ill-defined in theory.
+
+## Data Simulation
+
+Data is simulated from the normal distribution, gamma (shape = 1, scale = 2), and gamma (shape = 2, scale = 2). The distributions are plotted below (means displayed are population level).
+
+100 replications of 1,000 observations. Data is organized in a `tibble`, utilizing the `purrr::map` function.
+
+```{r sim}
+
+# Parameters
+N = 500
+nreps = 100
+
+simDF <- tibble(
+  distr = factor(c('normal', 'gamma12', 'gamma22')),
+  FUN = list(normal = function(x) rnorm(x), gamma12 = function(x) rgamma(x, shape = 1, scale = 2), gamma22 = function(x) rgamma(x, shape = 2, scale = 2))
+)
+
+sim_data <- function(FUN, N, nreps) return(matrix(FUN(N*nreps), nrow = N, ncol = nreps))
+
+set.seed(555)
+simDF <- simDF %>% 
+  mutate(data = map(FUN, function(f) sim_data(f, N, nreps)))
+
+simDF
+
+```
+
+```{r viz, echo = F}
+pal <- wes_palette('Darjeeling1', nlevels(simDF$distr), 'discrete')
+a <- 0.001
+p1 <- ggplot(data = data.frame(x = qnorm(c(a, 1-a))), aes(x)) +
+  stat_function(fun = dnorm, n = 101, args = list(mean = 0, sd = 1), size = 1,
+                color = pal[simDF$distr == 'normal']) + 
+  geom_vline(xintercept = 0, col = pal[simDF$distr == 'normal'], linetype = 'dashed', size = 1) +
+  annotate('text', x = 0, y = .18, label = 'Mean = 0', 
+           col = pal[simDF$distr == 'normal'], angle = -90, vjust = -.7) +
+  labs(y = 'Density', x = 'X', title = 'Normal Distribution')
+
+p1 + theme_bw()
+
+
+p2 <- ggplot(data = data.frame(x = qgamma(c(a, 1-a), shape = 2, scale = 2)), aes(x)) +
+  stat_function(fun = dgamma, n = 101, args = list(shape = 2, scale = 2), size = 1, col = pal[simDF$distr == 'gamma22'])+
+  geom_vline(xintercept = 4, col = pal[simDF$distr == 'gamma22'], linetype = 'dashed', size = 1) +
+  annotate('text', x = 4, y = .08, label = 'Mean = 4', 
+           col = pal[simDF$distr == 'gamma22'], angle = -90, vjust = -.7) +
+  labs(y = 'Density', x = 'X', title = 'Gamma Distribution (shape = 2, scale = 2)')
+
+p2 + theme_bw()
+
+p3 <- ggplot(data = data.frame(x = qgamma(c(a, 1-a), shape = 1, scale = 2)), aes(x)) +
+  stat_function(fun = dgamma, n = 101, args = list(shape = 1, scale = 2), size = 1, color = pal[simDF$distr == 'gamma12']) +
+  geom_vline(xintercept = 2, col = pal[simDF$distr == 'gamma12'], linetype = 'dashed', size = 1) +
+  annotate('text', x = 2, y = .3, label = 'Mean = 2', 
+           col = pal[simDF$distr == 'gamma12'], angle = -90, vjust = -.7) +
+  labs(y = 'Density', x = 'X', title = 'Gamma Distribution (shape = 1, scale = 2)')
+
+p3 + theme_bw()
+```
+
+## Estimator
+
+For sample mean $\bar{y}$, estimators are:
+
+$$\hat{\bar{y}} = mean(p10 + Median + p90)$$
+$$\hat{\bar{y}} = mean(p1 + Median + p99)$$
+
+```{r validate}
+estimators <- tibble(
+  name = c('quant', 'decile', 'p10p90'),
+  vals = list('quant' = c(0, .25, .5, .75, 1), 'decile' = seq(0, 1, by = .1),
+              'p10p90' = c(.1, .5, .9))
+)
+
+str(estimators)
+
+est_wrap <- function(vec, est) {
+  mean(quantile(vec, est))
+}
+
+col_est <- function(data, est) {
+  apply(data, 2, function(cl) est_wrap(cl, est))
+} 
+
+
+
+
+simDF <- simDF %>% 
+  mutate(samp_mean = map(data, colMeans),
+         quant_est = map(data, function(d) col_est(d, estimators$vals$quant)),
+         dec_est = map(data, function(d) col_est(d, estimators$vals$decile)),
+         p10p90_est = map(data, function(d) col_est(d, estimators$vals$p10p90)))
+
+rmse <- function(x, y) {
+  sqrt(mean((x - y)^2))
+}
+
+simDF <- simDF %>% 
+  mutate(
+    quant_est_acc = map2_dbl(quant_est, samp_mean, rmse),
+    dec_est_acc = map2_dbl(dec_est, samp_mean, rmse),
+    p10p90_est_acc = map2_dbl(p10p90_est, samp_mean, rmse)
+  )
+simDF
+```
+
+
+
