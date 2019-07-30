@@ -117,6 +117,12 @@ simDF <- simDF %>%
 rmse <- function(x, y) {
   sqrt(mean((x - y)^2))
 }
+simDF <- simDF %>% 
+  mutate(
+    quant_est_errs = map2(quant_est, samp_mean, function(x, y) x - y),
+    dec_est_errs = map2(dec_est, samp_mean, function(x, y) x - y),
+    p10p90_est_errs = map2(p10p90_est, samp_mean, function(x, y) x - y)
+  )
 
 simDF <- simDF %>% 
   mutate(
@@ -126,6 +132,5 @@ simDF <- simDF %>%
   )
 simDF
 ```
-
 
 
