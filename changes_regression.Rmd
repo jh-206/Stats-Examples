@@ -54,7 +54,7 @@ new_df <- new_df %>% add_predictions(fit2) %>% rename(pred2 = pred)
 
 ```
 
-Consider the following data and linear fit for `y` as a function of `x`. The linear model is used to predicted a new value at $x = 250,000$:
+Consider the following data and linear fit for `y` as a function of `x`. The linear model is used to predicted a new value at $x = 475,000$:
 
 ```{r plot1}
 ggplot(df, aes(x = x, y = y)) + 
