@@ -1,0 +1,18 @@
+1. random selection w replacement of loans to 
+create resample of initial gavm sample
+
+2. For each loan selected in resample in 1,
+randomly select GAVM value from 1,001 GAVM values
+
+Repeat 2,000 times
+
+Calculate inflation for each loan, compute average appraisal inflation
+
+95% confidence interval constructed from distribution of 2,000 iterations
+
+
+
+true - pred / pred = .08
+
+true = .08*pred + pred = 1.08 pred
+true / 1.08 = pred
