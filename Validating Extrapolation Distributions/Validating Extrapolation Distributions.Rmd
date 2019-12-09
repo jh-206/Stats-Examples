@@ -1,0 +1,62 @@
+---
+title: "Validating Extrapolation Methods"
+author: "Jonathon Hirschi"
+date: "12/8/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+suppressMessages(pacman::p_load(tidyverse))
+```
+
+```{r data_sim, echo=F}
+
+```
+
+
+## Introduction
+
+Consider a sample of size $n$ from an unknown population.  
+
+Two different models are fit on the sample. The specifics of the models, such as independent variables or fitting function, is not the focus of this analysis.
+
+$F(x_i) = x_i + \epsilon_i$
+
+$G(x_i) = x_i + \delta_i$
+
+For $i = 1, 2, ... , n$
+
+Where,
+
+$\epsilon_i \backsim N(0, \theta)$
+$\delta_i \backsim N(0, \gamma)$
+
+$\theta < \gamma$
+
+So the estimates have the same means, but one has greater variance than the other. I'll refer to 
+
+```{r dists}
+
+```
+
+
+
+## Bootstrap Extrapolation Methodology
+
+A simple bootstrap methodology is used to estimate the mean of the population.
+
+1. Bootstrap Sample from distributions
+
+2. Calculate Sample Mean
+
+3. Repeat 2,000 times to construct distribution of sample mean
+
+4. Calculate 95% confidence interval for sample mean using quantiles of bootstrap distribution
+
+## The Challenge: Validating the Extrapolation Distributions
+
+Which set of distributions is a better estimate of the variance of the population? If many samples were drawn from the population, we should expect the 95% confidence interval constructed from the sample to contain the population mean 95% of the time, if we have quantified the uncertainty properly. If the supposed 95% confidence interval captured the population mean say 99% of the time, then we have overestimated the variance of the sample mean. Conversely, if the supposed 95% confidence interval captured the population mean 90% of the time, then we have underestimated the variance of the sample mean.
+
+
