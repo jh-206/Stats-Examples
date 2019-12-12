@@ -39,14 +39,19 @@ surfaceArea.sphere <- function(x) {
 # Increasing Dimensionality
 x = 2 # fixing side length of cube and radius of sphere at 2
 df <- data.frame(dimension = 1:10)
-df$cube_v <- sapply(df$dimension, function(n) volume(cube(2, n)))
-df$cube_s <- sapply(df$dimension, function(n) surfaceArea(cube(2, n)))
+df$cube_v <- sapply(df$dimension, function(n) volume(cube(x, n)))
+df$cube_s <- sapply(df$dimension, function(n) surfaceArea(cube(x, n)))
 # df$sphere_v <- sapply(df$dimension, function(n) volume(sphere(2, n)))
 # df$sphere_s <- sapply(df$dimension, function(n) surfaceArea(sphere(2, n)))
 
 library(tidyverse)
 df %>% 
   pivot_longer(cols = -dimension) %>% 
-  ggplot(aes(x = dimension, y = value, color = name)) + geom_line() + theme_bw()
+  ggplot(aes(x = dimension, y = value, color = name)) + 
+  geom_line() + 
+  xlab('Dimensionality') +
+  scale_color_manual(values = c('blue', 'red'), labels = c('Surface Area', 'Volume')) +
+  theme_bw() +
+  theme(legend.title = element_blank())
 
 
